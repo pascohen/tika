@@ -14,41 +14,29 @@ import org.apache.tika.parser.pdf._
 import org.apache.tika.metadata._
 import org.apache.tika.parser._
 import org.xml.sax._
+
+import scala.collection.mutable.Set
+import scala.collection.mutable.ArrayBuffer
+
+class Handler extends ContentHandler {
+  val values = ArrayBuffer[String]() //Set[String]()
+
+  def characters(ch : Array[Char], start: Int, length: Int) {
+    //new String(ch).split("\\s+").forall { s => values.add(s) }
+    new String(ch).split("\\s+").map { s => values.append(s) }
+  }
  
-object Handler extends ContentHandler {
-	def characters(ch : Array[Char], start: Int, length: Int) {
-		println("<<"+new String(ch)+">>")
-	}
- 
-	def endDocument() {
-	}
- 
-	def endElement(uri: String, localName: String, qName: String) {
-	}
- 
-	def endPrefixMapping(prefix: String) {
-	}
- 
-	def ignorableWhitespace(ch: Array[Char], start: Int, length: Int) {
-	}
- 
-	def processingInstruction(target: String, data: String) {
-	}
- 
-	def setDocumentLocator(locator: Locator) {
-	}
- 
-	def skippedEntity(name: String) {
-	}
- 
-	def startDocument() {
-	}
- 
-	def startElement(uri: String, localName: String, qName: String, atts: Attributes) {
-	}
- 
-	def startPrefixMapping(prefix: String, uri: String) {
-	}
+  def endDocument = {}
+  def endElement(uri: String, localName: String, qName: String) = {}
+  def endPrefixMapping(prefix: String) = {}
+  def ignorableWhitespace(ch: Array[Char], start: Int, length: Int) = {}
+  def processingInstruction(target: String, data: String) = {}
+  def setDocumentLocator(locator: Locator) = {}
+  def skippedEntity(name: String) = {}
+  def startDocument = {}
+  def startElement(uri: String, localName: String, qName: String, atts: Attributes) = {}
+  def startPrefixMapping(prefix: String, uri: String) = {}
+  def getValues = values
 }
  
 
@@ -58,7 +46,15 @@ object Tika extends Controller {
     (__ \ 'fileName).read[String] and
     (__ \ 'url).read[String]
   ) tupled
+  
+  def listWrites(l: List[String]): JsValue = {
+    new JsArray(l.map {it => new JsString(it)})
+  }
 
+  def metadataWrites(l: List[(String,List[String])]): JsValue = {
+    new JsObject(l.map {it => (it._1,listWrites(it._2))})
+  }
+  
   def parseContent = Action(parse.json) { implicit request =>
     request.body.validate[(String, String)].map{
       case (fileName, url) => println("fileName = "+fileName+" and url = "+url) 
@@ -69,9 +65,17 @@ object Tika extends Controller {
 	val stream = new URL(url).openStream
 	val metadata = new Metadata
 
-	parser.parse(stream, Handler, metadata)
+	val h = new Handler
+	parser.parse(stream, h, metadata)
         stream.close()
+        
+        val names = metadata.names
+        val pairs = names.map { n => (n,metadata.getValues(n).toList) }.toList
+        
+
+        Ok(Json.obj("status"->"Ok","content"->listWrites(h.getValues.toList),"metadata"->metadataWrites(pairs)))
+    }.recoverTotal{
+      e => BadRequest(Json.obj("status" ->"KO", "message" -> JsError.toFlatJson(e)))
     }
-    Ok
   }
 }
