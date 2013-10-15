@@ -58,15 +58,13 @@ object Tika extends Controller {
   def parseContent = Action(parse.json) { implicit request =>
     request.body.validate[(String, String)].map{
       case (fileName, url) => println("fileName = "+fileName+" and url = "+url) 
-        //val file = "/home/pcohen/Downloads/pdf-test.pdf"     
-  	//val pdf = new PDFParser()
         val parser = new AutoDetectParser
         
-	val stream = new URL(url).openStream
-	val metadata = new Metadata
+        val stream = new URL(url).openStream
+        val metadata = new Metadata
 
-	val h = new Handler
-	parser.parse(stream, h, metadata)
+        val h = new Handler
+        parser.parse(stream, h, metadata)
         stream.close()
         
         val names = metadata.names
@@ -77,5 +75,21 @@ object Tika extends Controller {
     }.recoverTotal{
       e => BadRequest(Json.obj("status" ->"KO", "message" -> JsError.toFlatJson(e)))
     }
+  }
+  
+    def parseRawContent = Action(parse.raw) { implicit request =>
+      val bytes = request.body.asBytes().get // Very bad! () map { bytes:Array[Byte] =>
+        val parser = new AutoDetectParser
+        
+        val stream = new ByteArrayInputStream(bytes)
+        val metadata = new Metadata
+
+        val h = new Handler
+        parser.parse(stream, h, metadata)
+        
+        val names = metadata.names
+        val pairs = names.map { n => (n,metadata.getValues(n).toList) }.toList
+        
+        Ok(Json.obj("status"->"Ok","content"->listWrites(h.getValues.toList),"metadata"->metadataWrites(pairs)))
   }
 }
