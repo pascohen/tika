@@ -6,6 +6,7 @@
 GET     /                           controllers.Application.index
 POST    /parse                      controllers.Tika.parseContent
 POST    /parseraw                   controllers.Tika.parseRawContent
+POST    /parseraw2                  controllers.Tika.parseRawContent2
 
 
 # Map static resources from the /public folder to the /assets URL path

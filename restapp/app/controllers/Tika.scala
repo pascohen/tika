@@ -92,4 +92,26 @@ object Tika extends Controller {
         
         Ok(Json.obj("status"->"Ok","content"->listWrites(h.getValues.toList),"metadata"->metadataWrites(pairs)))
   }
+  
+    def parseRawContent2 = Action(parse.multipartFormData) { implicit request =>
+      request.body.file("filedata").map { picture =>
+        val filename = picture.ref
+
+        val parser = new AutoDetectParser
+        
+        val stream = new FileInputStream(filename.file)
+        val metadata = new Metadata
+  
+        val h = new Handler
+        parser.parse(stream, h, metadata)
+        stream.close()
+        
+        val names = metadata.names
+        val pairs = names.map { n => (n,metadata.getValues(n).toList) }.toList
+        
+        Ok(Json.obj("status"->"Ok","content"->listWrites(h.getValues.toList),"metadata"->metadataWrites(pairs)))
+      }.getOrElse {
+        BadRequest(Json.obj("status" ->"KO"))
+      }  
+  }
 }
