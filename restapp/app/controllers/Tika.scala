@@ -19,11 +19,12 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.ArrayBuffer
 
 class Handler extends ContentHandler {
-  val values = ArrayBuffer[String]() //Set[String]()
+  var values = "" //ArrayBuffer[String]() //Set[String]()
 
   def characters(ch : Array[Char], start: Int, length: Int) {
     //new String(ch).split("\\s+").forall { s => values.add(s) }
-    new String(ch).split("\\s+").map { s => values.append(s) }
+    //new String(ch).split("\\s+").map { s => values.append(s) }
+    values = values+" "+new String(ch)
   }
  
   def endDocument = {}
@@ -71,7 +72,7 @@ object Tika extends Controller {
         val pairs = names.map { n => (n,metadata.getValues(n).toList) }.toList
         
 
-        Ok(Json.obj("status"->"Ok","content"->listWrites(h.getValues.toList),"metadata"->metadataWrites(pairs)))
+        Ok(Json.obj("status"->"Ok","content"->h.getValues,"metadata"->metadataWrites(pairs)))
     }.recoverTotal{
       e => BadRequest(Json.obj("status" ->"KO", "message" -> JsError.toFlatJson(e)))
     }
@@ -90,7 +91,7 @@ object Tika extends Controller {
         val names = metadata.names
         val pairs = names.map { n => (n,metadata.getValues(n).toList) }.toList
         
-        Ok(Json.obj("status"->"Ok","content"->listWrites(h.getValues.toList),"metadata"->metadataWrites(pairs)))
+        Ok(Json.obj("status"->"Ok","content"->h.getValues,"metadata"->metadataWrites(pairs)))
   }
   
     def parseRawContent2 = Action(parse.multipartFormData) { implicit request =>
@@ -109,7 +110,7 @@ object Tika extends Controller {
         val names = metadata.names
         val pairs = names.map { n => (n,metadata.getValues(n).toList) }.toList
         
-        Ok(Json.obj("status"->"Ok","content"->listWrites(h.getValues.toList),"metadata"->metadataWrites(pairs)))
+        Ok(Json.obj("status"->"Ok","content"->h.getValues,"metadata"->metadataWrites(pairs)))
       }.getOrElse {
         BadRequest(Json.obj("status" ->"KO"))
       }  
