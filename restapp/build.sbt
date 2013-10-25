@@ -2,6 +2,10 @@ name := "restapp"
 
 version := "1.0-SNAPSHOT"
 
+scalacOptions += "-deprecation"
+
+scalacOptions += "-feature"
+
 libraryDependencies ++= Seq(
   jdbc,
   anorm,
@@ -10,3 +14,4 @@ libraryDependencies ++= Seq(
 )     
 
 play.Project.playScalaSettings
+
